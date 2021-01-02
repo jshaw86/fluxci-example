@@ -6,7 +6,7 @@ metadata:
   namespace: flux-system
 spec:
   checkout:
-    branch: main
+    branch: master 
     gitRepositoryRef:
       name: flux-system
   commit:
