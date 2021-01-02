@@ -1,0 +1,37 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta1
+kind: GitRepository
+metadata:
+  name: podinfo
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/jshaw86/fluxci-example-charts
+  ref:
+    branch: master
+  ignore: |
+    # exclude all
+    /*
+    # include charts directory
+    !/charts/
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: podinfo
+  namespace: default
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./deploy/podinfo
+      version: '1.0.x'
+      sourceRef:
+        kind: GitRepository
+        name: podinfo
+        namespace: flux-system
+      interval: 1m
+  values:
+    image:
+      repository: ghcr.io/stefanprodan/podinfo
+      tag: 5.0.0  # {"$imagepolicy": "flux-system:podinfo:tag"}
+
