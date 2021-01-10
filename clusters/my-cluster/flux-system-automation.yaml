@@ -6,9 +6,9 @@ metadata:
   namespace: flux-system
 spec:
   checkout:
-    branch: master 
+    branch: master
     gitRepositoryRef:
-      name: flux-system
+      name: podinfo 
   commit:
     authorEmail: fluxcdbot@users.noreply.github.com
     authorName: fluxcdbot
