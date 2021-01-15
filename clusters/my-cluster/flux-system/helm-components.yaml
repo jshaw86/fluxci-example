@@ -11,8 +11,8 @@ spec:
   ignore: |-
     # exclude all
     /*
-    # include charts directory
-    !/charts/
+    # include deploy directory
+    !/deploy/
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
