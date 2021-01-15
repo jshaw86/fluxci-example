@@ -8,7 +8,7 @@ spec:
   url: git@github.com:jshaw86/fluxci-example-charts.git
   ref:
     branch: master
-  ignore: |
+  ignore: |-
     # exclude all
     /*
     # include charts directory
@@ -33,5 +33,4 @@ spec:
   values:
     image:
       repository: ghcr.io/stefanprodan/podinfo
-      tag: 5.0.0  # {"$imagepolicy": "flux-system:podinfo:tag"}
-
+      tag: 5.0.3 # {"$imagepolicy": "flux-system:podinfo:tag"}
