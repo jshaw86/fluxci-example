@@ -1,7 +1,7 @@
 apiVersion: source.toolkit.fluxcd.io/v1beta1
 kind: GitRepository
 metadata:
-  name: podinfo
+  name: charts 
   namespace: flux-system
 spec:
   interval: 1m
@@ -17,20 +17,19 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: podinfo
+  name: simple-server 
   namespace: default
 spec:
   interval: 5m
   chart:
     spec:
-      chart: ./deploy/podinfo
+      chart: ./deploy/simple-server
       version: '1.0.x'
       sourceRef:
         kind: GitRepository
-        name: podinfo
+        name: charts 
         namespace: flux-system
       interval: 1m
   values:
     image:
-      repository: ghcr.io/stefanprodan/podinfo
-      tag: 5.0.3 # {"$imagepolicy": "flux-system:podinfo:tag"}
+      tag: 1.0.0 # {"$imagepolicy": "flux-system:simple-server:tag"}
