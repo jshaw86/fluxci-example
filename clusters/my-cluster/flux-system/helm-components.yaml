@@ -1,7 +1,7 @@
 apiVersion: source.toolkit.fluxcd.io/v1beta1
 kind: GitRepository
 metadata:
-  name: charts 
+  name: charts
   namespace: flux-system
 spec:
   interval: 1m
@@ -17,7 +17,7 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
-  name: simple-server 
+  name: simple-server
   namespace: default
 spec:
   interval: 5m
@@ -27,9 +27,9 @@ spec:
       version: '1.0.x'
       sourceRef:
         kind: GitRepository
-        name: charts 
+        name: charts
         namespace: flux-system
       interval: 1m
   values:
     image:
-      tag: 1.0.0 # {"$imagepolicy": "flux-system:simple-server:tag"}
+      tag: v1.0.0 # {"$imagepolicy": "flux-system:simple-server:tag"}
