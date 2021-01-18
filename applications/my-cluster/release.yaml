@@ -1,23 +1,17 @@
+---
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: simple-server
-  namespace: default 
+  namespace: flux-system
 spec:
-  releaseName: simple-server
   chart:
     spec:
       chart: simple-server
       sourceRef:
         kind: GitRepository
-        name: charts-repository 
-        namespace: flux-system 
-  interval: 5m
-  install:
-    remediation:
-      retries: 3
-  values:
-    ingress:
-      enabled: true
-      annotations:
-        kubernetes.io/ingress.class: nginx
+        name: charts-repository
+      version: '*'
+  interval: 1m0s
+  releaseName: simple-server
+  targetNamespace: default
