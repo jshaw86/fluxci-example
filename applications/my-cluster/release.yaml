@@ -10,8 +10,8 @@ spec:
       chart: simple-server
       sourceRef:
         kind: GitRepository
-        name: simple-server
-        namespace: flux-system
+        name: charts-repository 
+        namespace: flux-system 
   interval: 5m
   install:
     remediation:

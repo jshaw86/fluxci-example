@@ -9,4 +9,8 @@ spec:
   ref:
     branch: master
   url: https://github.com/jshaw86/fluxci-example-charts
-
+  ignore: |
+    # exclude all
+    /*
+    # include charts directory
+    !/deploy/
