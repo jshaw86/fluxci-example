@@ -7,7 +7,7 @@ metadata:
 spec:
   chart:
     spec:
-      chart: simple-server
+      chart: ./deploy/simple-server
       sourceRef:
         kind: GitRepository
         name: charts-repository
