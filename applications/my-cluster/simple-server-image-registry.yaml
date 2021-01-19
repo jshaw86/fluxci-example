@@ -3,7 +3,7 @@ apiVersion: image.toolkit.fluxcd.io/v1alpha1
 kind: ImageRepository
 metadata:
   name: simple-server 
-  namespace: default 
+  namespace: flux-system 
 spec:
   image: jshaw86/simple-webserver
   interval: 1m0s
