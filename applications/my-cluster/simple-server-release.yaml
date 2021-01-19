@@ -17,4 +17,4 @@ spec:
   targetNamespace: default
   values:
     image:
-      tag: v1.0.0  # {"$imagepolicy": "flux-system:simple-system:tag"}
+      tag: v1.0.0  # {"$imagepolicy": "flux-system:simple-server:tag"}
