@@ -59,7 +59,7 @@ spec:
                 - error
                 type: string
               eventSources:
-                description: Filter events based on the involved objects
+                description: Filter events based on the involved objects.
                 items:
                   description: CrossNamespaceObjectReference contains enough information to let you locate the typed referenced object at cluster level
                   properties:
@@ -76,6 +76,8 @@ spec:
                       - HelmChart
                       - HelmRepository
                       - ImageRepository
+                      - ImagePolicy
+                      - ImageUpdateAutomation
                       type: string
                     name:
                       description: Name of the referent
@@ -91,12 +93,19 @@ spec:
                   - name
                   type: object
                 type: array
+              exclusionList:
+                description: A list of Golang regular expressions to be used for excluding messages.
+                items:
+                  type: string
+                type: array
               providerRef:
-                description: Send events using this provider
+                description: Send events using this provider.
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: Name of the referent
                     type: string
+                required:
+                - name
                 type: object
               summary:
                 description: Short description of the impact and affected cluster.
@@ -244,8 +253,10 @@ spec:
                 description: The name of the secret containing authentication credentials for the Bucket.
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: Name of the referent
                     type: string
+                required:
+                - name
                 type: object
               suspend:
                 description: This flag tells the controller to suspend the reconciliation of this source.
@@ -434,8 +445,10 @@ spec:
                 description: The secret name containing the Git credentials. For HTTPS repositories the secret must contain username and password fields. For SSH repositories the secret must contain identity, identity.pub and known_hosts fields.
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: Name of the referent
                     type: string
+                required:
+                - name
                 type: object
               suspend:
                 description: This flag tells the controller to suspend the reconciliation of this source.
@@ -460,8 +473,10 @@ spec:
                     description: The secret name containing the public keys of all trusted Git authors.
                     properties:
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        description: Name of the referent
                         type: string
+                    required:
+                    - name
                     type: object
                 required:
                 - mode
@@ -916,13 +931,112 @@ spec:
                     description: SecretRef holds the name to a secret that contains a 'value' key with the kubeconfig file as the value. It must be in the same namespace as the HelmRelease. It is recommended that the kubeconfig is self-contained, and the secret is regularly updated if credentials such as a cloud-access-token expire. Cloud specific `cmd-path` auth helpers will not function without adding binaries and credentials to the Pod that is responsible for reconciling the HelmRelease.
                     properties:
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        description: Name of the referent
                         type: string
+                    required:
+                    - name
                     type: object
                 type: object
               maxHistory:
                 description: MaxHistory is the number of revisions saved by Helm for this HelmRelease. Use '0' for an unlimited number of revisions; defaults to '10'.
                 type: integer
+              postRenderers:
+                description: PostRenderers holds an array of Helm PostRenderers, which will be applied in order of their definition.
+                items:
+                  description: PostRenderer contains a Helm PostRenderer specification.
+                  properties:
+                    kustomize:
+                      description: Kustomization to apply as PostRenderer.
+                      properties:
+                        images:
+                          description: Images is a list of (image name, new name, new tag or digest) for changing image names, tags or digests. This can also be achieved with a patch, but this operator is simpler to specify.
+                          items:
+                            description: Image contains an image name, a new name, a new tag or digest, which will replace the original name and tag.
+                            properties:
+                              digest:
+                                description: Digest is the value used to replace the original image tag. If digest is present NewTag value is ignored.
+                                type: string
+                              name:
+                                description: Name is a tag-less image name.
+                                type: string
+                              newName:
+                                description: NewName is the value used to replace the original name.
+                                type: string
+                              newTag:
+                                description: NewTag is the value used to replace the original tag.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          type: array
+                        patchesJson6902:
+                          description: JSON 6902 patches, defined as inline YAML objects.
+                          items:
+                            description: JSON6902Patch contains a JSON6902 patch and the target the patch should be applied to.
+                            properties:
+                              patch:
+                                description: Patch contains the JSON6902 patch document with an array of operation objects.
+                                items:
+                                  description: JSON6902 is a JSON6902 operation object. https://tools.ietf.org/html/rfc6902#section-4
+                                  properties:
+                                    from:
+                                      type: string
+                                    op:
+                                      enum:
+                                      - test
+                                      - remove
+                                      - add
+                                      - replace
+                                      - move
+                                      - copy
+                                      type: string
+                                    path:
+                                      type: string
+                                    value:
+                                      x-kubernetes-preserve-unknown-fields: true
+                                  required:
+                                  - op
+                                  - path
+                                  type: object
+                                type: array
+                              target:
+                                description: Target points to the resources that the patch document should be applied to.
+                                properties:
+                                  annotationSelector:
+                                    description: AnnotationSelector is a string that follows the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api It matches with the resource annotations.
+                                    type: string
+                                  group:
+                                    description: Group is the API group to select resources from. Together with Version and Kind it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+                                    type: string
+                                  kind:
+                                    description: Kind of the API Group to select resources from. Together with Group and Version it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+                                    type: string
+                                  labelSelector:
+                                    description: LabelSelector is a string that follows the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api It matches with the resource labels.
+                                    type: string
+                                  name:
+                                    description: Name to match resources with.
+                                    type: string
+                                  namespace:
+                                    description: Namespace to select resources from.
+                                    type: string
+                                  version:
+                                    description: Version of the API Group to select resources from. Together with Group and Kind it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+                                    type: string
+                                type: object
+                            required:
+                            - patch
+                            - target
+                            type: object
+                          type: array
+                        patchesStrategicMerge:
+                          description: Strategic merge patches, defined as inline YAML objects.
+                          items:
+                            x-kubernetes-preserve-unknown-fields: true
+                          type: array
+                      type: object
+                  type: object
+                type: array
               releaseName:
                 description: ReleaseName used for the Helm release. Defaults to a composition of '[TargetNamespace-]Name'.
                 maxLength: 53
@@ -952,6 +1066,11 @@ spec:
                 type: object
               serviceAccountName:
                 description: The name of the Kubernetes service account to impersonate when reconciling this HelmRelease.
+                type: string
+              storageNamespace:
+                description: StorageNamespace used for the Helm storage. Defaults to the namespace of the HelmRelease.
+                maxLength: 63
+                minLength: 1
                 type: string
               suspend:
                 description: Suspend tells the controller to suspend reconciliation for this HelmRelease, it does not apply to already started reconciliations. Defaults to false.
@@ -1220,8 +1339,10 @@ spec:
                 description: The name of the secret containing authentication credentials for the Helm repository. For HTTP/S basic auth the secret must contain username and password fields. For TLS the secret must contain a certFile and keyFile, and/or caCert fields.
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: Name of the referent
                     type: string
+                required:
+                - name
                 type: object
               suspend:
                 description: This flag tells the controller to suspend the reconciliation of this source.
@@ -1334,7 +1455,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.3.0
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   labels:
     app.kubernetes.io/instance: flux-system
@@ -1383,8 +1504,10 @@ spec:
                 description: ImageRepositoryRef points at the object specifying the image being scanned
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: Name of the referent
                     type: string
+                required:
+                - name
                 type: object
               policy:
                 description: Policy gives the particulars of the policy to be followed in selecting the most recent image
@@ -1395,6 +1518,17 @@ spec:
                       order:
                         default: asc
                         description: Order specifies the sorting order of the tags. Given the letters of the alphabet as tags, ascending order would select Z, and descending order would select A.
+                        enum:
+                        - asc
+                        - desc
+                        type: string
+                    type: object
+                  numerical:
+                    description: Numerical set of rules to use for numerical ordering of the tags.
+                    properties:
+                      order:
+                        default: asc
+                        description: Order specifies the sorting order of the tags. Given the integer values from 0 to 9 as tags, ascending order would select 9, and descending order would select 0.
                         enum:
                         - asc
                         - desc
@@ -1483,7 +1617,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.3.0
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   labels:
     app.kubernetes.io/instance: flux-system
@@ -1521,6 +1655,15 @@ spec:
           spec:
             description: ImageRepositorySpec defines the parameters for scanning an image repository, e.g., `fluxcd/flux`.
             properties:
+              certSecretRef:
+                description: "CertSecretRef can be given the name of a secret containing either or both of \n  - a PEM-encoded client certificate (`certFile`) and private  key (`keyFile`);  - a PEM-encoded CA certificate (`caFile`) \n  and whichever are supplied, will be used for connecting to the  registry. The client cert and key are useful if you are  authenticating with a certificate; the CA cert is useful if  you are using a self-signed server certificate."
+                properties:
+                  name:
+                    description: Name of the referent
+                    type: string
+                required:
+                - name
+                type: object
               image:
                 description: Image is the name of the image repository
                 type: string
@@ -1531,8 +1674,10 @@ spec:
                 description: SecretRef can be given the name of a secret containing credentials to use for the image registry. The secret should be created with `kubectl create secret docker-registry`, or the equivalent.
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: Name of the referent
                     type: string
+                required:
+                - name
                 type: object
               suspend:
                 description: This flag tells the controller to suspend subsequent image scans. It does not apply to already started scans. Defaults to false.
@@ -1545,7 +1690,7 @@ spec:
             description: ImageRepositoryStatus defines the observed state of ImageRepository
             properties:
               canonicalImageName:
-                description: CannonicalName is the name of the image repository with all the implied bits made explicit; e.g., `docker.io/library/alpine` rather than `alpine`.
+                description: CanonicalName is the name of the image repository with all the implied bits made explicit; e.g., `docker.io/library/alpine` rather than `alpine`.
                 type: string
               conditions:
                 items:
@@ -1670,8 +1815,10 @@ spec:
                     description: GitRepositoryRef refers to the resource giving access details to a git repository to update files in.
                     properties:
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        description: Name of the referent
                         type: string
+                    required:
+                    - name
                     type: object
                 required:
                 - branch
@@ -1700,17 +1847,23 @@ spec:
                 description: Suspend tells the controller to not run this automation, until it is unset (or set to false). Defaults to false.
                 type: boolean
               update:
-                description: Update gives the specification for how to update the files in the repository
+                default:
+                  strategy: Setters
+                description: Update gives the specification for how to update the files in the repository. This can be left empty, to use the default value.
                 properties:
-                  setters:
-                    description: Setters if present means update workloads using setters, via fields marked in the files themselves.
-                    type: object
+                  strategy:
+                    default: Setters
+                    description: Strategy names the strategy to be used.
+                    enum:
+                    - Setters
+                    type: string
+                required:
+                - strategy
                 type: object
             required:
             - checkout
             - commit
             - interval
-            - update
             type: object
           status:
             description: ImageUpdateAutomationStatus defines the observed state of ImageUpdateAutomation
@@ -1847,8 +2000,10 @@ spec:
                     description: The secret name containing the private OpenPGP keys used for decryption.
                     properties:
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        description: Name of the referent
                         type: string
+                    required:
+                    - name
                     type: object
                 required:
                 - provider
@@ -1871,10 +2026,10 @@ spec:
               healthChecks:
                 description: A list of resources to be included in the health assessment.
                 items:
-                  description: CrossNamespaceObjectReference contains enough information to let you locate the typed referenced object at cluster level
+                  description: NamespacedObjectKindReference contains enough information to let you locate the typed referenced object in any namespace
                   properties:
                     apiVersion:
-                      description: API version of the referent, defaults to 'apps/v1'
+                      description: API version of the referent, if not specified the Kubernetes preferred version will be used
                       type: string
                     kind:
                       description: Kind of the referent
@@ -1883,7 +2038,7 @@ spec:
                       description: Name of the referent
                       type: string
                     namespace:
-                      description: Namespace of the referent
+                      description: Namespace of the referent, when not specified it acts as LocalObjectReference
                       type: string
                   required:
                   - kind
@@ -1891,23 +2046,24 @@ spec:
                   type: object
                 type: array
               images:
-                description: A list of images used to override or set the name and tag for container images.
+                description: Images is a list of (image name, new name, new tag or digest) for changing image names, tags or digests. This can also be achieved with a patch, but this operator is simpler to specify.
                 items:
-                  description: Image contains the name, new name and new tag that will replace the original container image.
+                  description: Image contains an image name, a new name, a new tag or digest, which will replace the original name and tag.
                   properties:
+                    digest:
+                      description: Digest is the value used to replace the original image tag. If digest is present NewTag value is ignored.
+                      type: string
                     name:
-                      description: Name of the image to be replaced.
+                      description: Name is a tag-less image name.
                       type: string
                     newName:
-                      description: NewName is the name of the image used to replace the original one.
+                      description: NewName is the value used to replace the original name.
                       type: string
                     newTag:
-                      description: NewTag is the image tag used to replace the original tag.
+                      description: NewTag is the value used to replace the original tag.
                       type: string
                   required:
                   - name
-                  - newName
-                  - newTag
                   type: object
                 type: array
               interval:
@@ -1920,16 +2076,95 @@ spec:
                     description: SecretRef holds the name to a secret that contains a 'value' key with the kubeconfig file as the value. It must be in the same namespace as the Kustomization. It is recommended that the kubeconfig is self-contained, and the secret is regularly updated if credentials such as a cloud-access-token expire. Cloud specific `cmd-path` auth helpers will not function without adding binaries and credentials to the Pod that is responsible for reconciling the Kustomization.
                     properties:
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        description: Name of the referent
                         type: string
+                    required:
+                    - name
                     type: object
                 type: object
+              patchesJson6902:
+                description: JSON 6902 patches, defined as inline YAML objects.
+                items:
+                  description: JSON6902Patch contains a JSON6902 patch and the target the patch should be applied to.
+                  properties:
+                    patch:
+                      description: Patch contains the JSON6902 patch document with an array of operation objects.
+                      items:
+                        description: JSON6902 is a JSON6902 operation object. https://tools.ietf.org/html/rfc6902#section-4
+                        properties:
+                          from:
+                            type: string
+                          op:
+                            enum:
+                            - test
+                            - remove
+                            - add
+                            - replace
+                            - move
+                            - copy
+                            type: string
+                          path:
+                            type: string
+                          value:
+                            x-kubernetes-preserve-unknown-fields: true
+                        required:
+                        - op
+                        - path
+                        type: object
+                      type: array
+                    target:
+                      description: Target points to the resources that the patch document should be applied to.
+                      properties:
+                        annotationSelector:
+                          description: AnnotationSelector is a string that follows the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api It matches with the resource annotations.
+                          type: string
+                        group:
+                          description: Group is the API group to select resources from. Together with Version and Kind it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+                          type: string
+                        kind:
+                          description: Kind of the API Group to select resources from. Together with Group and Version it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+                          type: string
+                        labelSelector:
+                          description: LabelSelector is a string that follows the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api It matches with the resource labels.
+                          type: string
+                        name:
+                          description: Name to match resources with.
+                          type: string
+                        namespace:
+                          description: Namespace to select resources from.
+                          type: string
+                        version:
+                          description: Version of the API Group to select resources from. Together with Group and Kind it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+                          type: string
+                      type: object
+                  required:
+                  - patch
+                  - target
+                  type: object
+                type: array
+              patchesStrategicMerge:
+                description: Strategic merge patches, defined as inline YAML objects.
+                items:
+                  x-kubernetes-preserve-unknown-fields: true
+                type: array
               path:
                 description: Path to the directory containing the kustomization.yaml file, or the set of plain YAMLs a kustomization.yaml should be generated for. Defaults to 'None', which translates to the root path of the SourceRef.
                 type: string
+              postBuild:
+                description: PostBuild describes which actions to perform on the YAML manifest generated by building the kustomize overlay.
+                properties:
+                  substitute:
+                    additionalProperties:
+                      type: string
+                    description: Substitute holds a map of key/value pairs. The variables defined in your YAML manifests that match any of the keys defined in the map will be substituted with the set value. Includes support for bash string replacement functions e.g. ${var:=default}, ${var:position} and ${var/substring/replacement}.
+                    type: object
+                type: object
               prune:
                 description: Prune enables garbage collection.
                 type: boolean
+              retryInterval:
+                description: The interval at which to retry a previously failed reconciliation. When not specified, the controller uses the KustomizationSpec.Interval value to retry failures.
+                type: string
               serviceAccountName:
                 description: The name of the Kubernetes service account to impersonate when reconciling this Kustomization.
                 type: string
@@ -2137,8 +2372,10 @@ spec:
                 description: Secret reference containing the provider webhook URL using "address" as data key
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: Name of the referent
                     type: string
+                required:
+                - name
                 type: object
               type:
                 description: Type of provider
@@ -2286,6 +2523,8 @@ spec:
                       - HelmChart
                       - HelmRepository
                       - ImageRepository
+                      - ImagePolicy
+                      - ImageUpdateAutomation
                       type: string
                     name:
                       description: Name of the referent
@@ -2305,8 +2544,10 @@ spec:
                 description: Secret reference containing the token used to validate the payload authenticity
                 properties:
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    description: Name of the referent
                     type: string
+                required:
+                - name
                 type: object
               suspend:
                 description: This flag tells the controller to suspend subsequent events handling. Defaults to false.
@@ -2315,11 +2556,15 @@ spec:
                 description: Type of webhook sender, used to determine the validation procedure and payload deserialization.
                 enum:
                 - generic
+                - generic-hmac
                 - github
                 - gitlab
                 - bitbucket
                 - harbor
                 - dockerhub
+                - quay
+                - gcr
+                - nexus
                 type: string
             required:
             - resources
@@ -2387,14 +2632,67 @@ status:
   conditions: []
   storedVersions: []
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/version: latest
+  name: helm-controller
+  namespace: flux-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/version: latest
+  name: image-automation-controller
+  namespace: flux-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/version: latest
+  name: image-reflector-controller
+  namespace: flux-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/version: latest
+  name: kustomize-controller
+  namespace: flux-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/version: latest
+  name: notification-controller
+  namespace: flux-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/version: latest
+  name: source-controller
+  namespace: flux-system
+---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/instance: flux-system
     app.kubernetes.io/version: latest
   name: crd-controller-flux-system
-  namespace: flux-system
 rules:
 - apiGroups:
   - source.toolkit.fluxcd.io
@@ -2421,12 +2719,19 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - ""
+  - image.toolkit.fluxcd.io
   resources:
-  - configmaps
-  - configmaps/status
+  - '*'
   verbs:
   - '*'
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -2434,23 +2739,31 @@ rules:
   verbs:
   - create
   - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/instance: flux-system
-    app.kubernetes.io/version: latest
-  name: crd-controller-flux-system
-  namespace: flux-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: crd-controller-flux-system
-subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: flux-system
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - configmaps/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -2465,7 +2778,41 @@ roleRef:
   name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: kustomize-controller
+  namespace: flux-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/version: latest
+  name: crd-controller-flux-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crd-controller-flux-system
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-system
+- kind: ServiceAccount
+  name: source-controller
+  namespace: flux-system
+- kind: ServiceAccount
+  name: notification-controller
+  namespace: flux-system
+- kind: ServiceAccount
+  name: image-reflector-controller
+  namespace: flux-system
+- kind: ServiceAccount
+  name: image-automation-controller
   namespace: flux-system
 ---
 apiVersion: v1
@@ -2559,7 +2906,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/fluxcd/helm-controller:v0.5.1
+        image: ghcr.io/fluxcd/helm-controller:v0.7.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -2592,6 +2939,7 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+      serviceAccountName: helm-controller
       terminationGracePeriodSeconds: 600
       volumes:
       - emptyDir: {}
@@ -2631,7 +2979,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/fluxcd/image-automation-controller:v0.3.0
+        image: ghcr.io/fluxcd/image-automation-controller:v0.5.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -2664,6 +3012,9 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: image-automation-controller
       terminationGracePeriodSeconds: 10
       volumes:
       - emptyDir: {}
@@ -2703,7 +3054,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/fluxcd/image-reflector-controller:v0.2.0
+        image: ghcr.io/fluxcd/image-reflector-controller:v0.6.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -2738,6 +3089,9 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: image-reflector-controller
       terminationGracePeriodSeconds: 10
       volumes:
       - emptyDir: {}
@@ -2779,7 +3133,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/fluxcd/kustomize-controller:v0.6.2
+        image: ghcr.io/fluxcd/kustomize-controller:v0.8.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -2814,6 +3168,7 @@ spec:
         kubernetes.io/os: linux
       securityContext:
         fsGroup: 1337
+      serviceAccountName: kustomize-controller
       terminationGracePeriodSeconds: 60
       volumes:
       - emptyDir: {}
@@ -2852,7 +3207,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/fluxcd/notification-controller:v0.6.1
+        image: ghcr.io/fluxcd/notification-controller:v0.8.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -2889,6 +3244,7 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+      serviceAccountName: notification-controller
       terminationGracePeriodSeconds: 10
       volumes:
       - emptyDir: {}
@@ -2908,6 +3264,8 @@ spec:
   selector:
     matchLabels:
       app: source-controller
+  strategy:
+    type: Recreate
   template:
     metadata:
       annotations:
@@ -2930,18 +3288,20 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: ghcr.io/fluxcd/source-controller:v0.6.1
+        image: ghcr.io/fluxcd/source-controller:v0.8.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
-            path: /
-            port: http
+            path: /healthz
+            port: healthz
         name: manager
         ports:
         - containerPort: 9090
           name: http
         - containerPort: 8080
           name: http-prom
+        - containerPort: 9440
+          name: healthz
         readinessProbe:
           httpGet:
             path: /
@@ -2964,6 +3324,9 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: source-controller
       terminationGracePeriodSeconds: 10
       volumes:
       - emptyDir: {}
